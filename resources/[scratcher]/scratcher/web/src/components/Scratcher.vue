@@ -1,12 +1,17 @@
 <script setup lang="ts">
-	//import cardOver from '../assets/scratcher/card-over.png'
 	import GlowingSVG from '../components/GlowingSVG.vue'
 	import EmptySVG from '../components/EmptySVG.vue'
+	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
 	import { ref, onMounted, nextTick } from 'vue'
 
 	const svgRef = ref<SVGSVGElement | null>(null)
+	const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 	const glowingBalls = ref<{ x: number; y: number; animate?: boolean }[]>([])
+	const isScratching = ref<boolean>(false)
+
+	const SIZE: number = 300
+	const PRIZE = 100000
 
 	function addGlowingBalls(svg: SVGSVGElement, groupSelector = '#balls path') {
 		const paths = svg.querySelectorAll(groupSelector) as NodeListOf<SVGPathElement>
@@ -33,19 +38,68 @@
 
 	onMounted(async () => {
 		await nextTick()
-		const svg = svgRef.value?.$el ?? svgRef.value
-		addGlowingBalls(svg)
 
-		await nextTick()
+		const svg = svgRef.value?.$el ?? svgRef.value
+		if (svg) addGlowingBalls(svg)
+
 		glowingBalls.value.forEach((ball, i) => {
 			setTimeout(() => {
 				ball.animate = true
 			}, i * 35)
 		})
+
+		const canvas = canvasRef.value
+		if (!canvas) return
+		const rect = canvas.getBoundingClientRect()
+		canvas.width = rect.width
+		canvas.height = rect.height
+		const ctx = canvas.getContext('2d')
+		if (!ctx) return
+
+		const img = new Image()
+		img.src = ScratchSufrace
+		img.onload = () => {
+			ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+		}
 	})
 
-	let size: number = 300
-	let prize: number = 100000
+	function startScratch() {
+		isScratching.value = true
+	}
+
+	function endScratch() {
+		isScratching.value = false
+	}
+
+	function scratch(e: MouseEvent | TouchEvent) {
+		e.preventDefault()
+		if (!isScratching.value) return
+
+		const canvas = canvasRef.value
+		if (!canvas) return
+		const ctx = canvas.getContext('2d')
+		if (!ctx) return
+
+		const rect = canvas.getBoundingClientRect()
+		let x: number, y: number
+
+		if (e instanceof TouchEvent) {
+			const touch = e.touches[0]
+			x = touch.clientX - rect.left
+			y = touch.clientY - rect.top
+		} else {
+			x = e.clientX - rect.left
+			y = e.clientY - rect.top
+		}
+
+		ctx.globalCompositeOperation = 'destination-out'
+		ctx.lineJoin = 'round'
+		ctx.lineCap = 'round'
+		ctx.lineWidth = 40
+		ctx.beginPath()
+		ctx.arc(x, y, 50, 0, Math.PI * 2)
+		ctx.fill()
+	}
 </script>
 
 <template>
@@ -63,38 +117,34 @@
 					top: `${pt.y}px`,
 				}"
 			/>
+			<canvas
+				ref="canvasRef"
+				@mousemove="scratch"
+				@touchstart="startScratch"
+				@touchend="endScratch"
+				@mousedown="startScratch"
+				@mouseup="endScratch"
+				class="canvas"
+			></canvas>
 		</div>
-		<figure>
-			<canvas :width="size" :height="Math.floor(size * 1.1125)" class="box"></canvas>
-			<figcaption class="w-full">
-				<svg viewBox="0 0 471 100" width="100%" xmlns="http://www.w3.org/2000/svg">
-					<defs>
-						<linearGradient id="grad">
-							<stop offset="0%" stop-color="#ff0000" />
-							<stop offset="91%" stop-color="#990000" />
-						</linearGradient>
-					</defs>
-					<text
-						x="0"
-						y="70"
-						font-family="'Kadwa', serif"
-						font-size="48"
-						font-weight="700"
-						fill="url(#grad)"
-						stroke="#fff"
-						stroke-width="2"
-						paint-order="stroke fill"
-						dominant-baseline="middle"
-					>
-						WIN UP TO ${{ prize }}
-					</text>
-				</svg>
-			</figcaption>
-		</figure>
+		<p class="font-kadwa">WIN UP TO ${{ PRIZE }}</p>
 	</div>
 </template>
 
 <style scoped>
+	p {
+		leading-trim: both;
+		text-edge: cap;
+		-webkit-text-stroke-width: 1.52px;
+		-webkit-text-stroke-color: #fff;
+		font-family: Kadwa, serif;
+		width: max-content;
+		font-size: 3.2rem;
+		font-style: normal;
+		font-weight: 700;
+		line-height: 200.54%; /* 6.09794rem */
+		text-transform: uppercase;
+	}
 	#glowing-wrapper {
 		position: relative;
 	}
@@ -104,25 +154,41 @@
 	}
 
 	#wrapper {
-		width: calc(481px + 8.5rem);
 		padding: 4.25rem;
+		position: relative;
 		img {
 			pointer-events: none;
 		}
 	}
 
-	/*
-	.box {
-		height: 100%;
-		width: 100%;
+	.canvas {
+		&:hover {
+			cursor: crosshair;
+		}
+		z-index: -1;
+		touch-action: none;
 		position: absolute;
 		top: 0;
+		border-radius: 0.9rem;
 		left: 0;
-	}
-	.overlay {
+		width: calc(100% - 3.86rem);
+		height: calc(100% - 4.3rem);
 		z-index: 1;
+		inset: 1.93rem;
 	}
-    */
+
+	/*
+		.box {
+			height: 100%;
+			width: 100%;
+			position: absolute;
+			top: 0;
+			left: 0;
+		}
+		.overlay {
+			z-index: 1;
+		}
+		   */
 
 	.background {
 		display: flex;

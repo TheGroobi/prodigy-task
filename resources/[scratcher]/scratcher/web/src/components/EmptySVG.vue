@@ -1,11 +1,5 @@
 <template>
-	<svg
-		width="482"
-		height="537"
-		viewBox="0 0 482 537"
-		fill="none"
-		xmlns="http://www.w3.org/2000/svg"
-	>
+	<svg width="100%" viewBox="0 0 482 537" fill="none" xmlns="http://www.w3.org/2000/svg">
 		<path
 			d="M42.52 533.49C20.64 533.49 2.83002 515.69 2.83002 493.81V42.53C2.83002 20.65 20.63 2.85004 42.52 2.85004H439.37C461.25 2.85004 479.05 20.65 479.05 42.53V493.81C479.05 515.69 461.25 533.49 439.37 533.49H42.52Z"
 			fill="url(#paint0_radial_1_37)"
