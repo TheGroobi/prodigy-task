@@ -1,5 +1,6 @@
 <script setup lang="ts">
 	import CardBorderSVG from '../components/CardBorderSVG.vue'
+	import Connections from '../components/Connections.vue'
 	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
 	import { ref, onMounted, nextTick } from 'vue'
 
@@ -9,8 +10,6 @@
 	const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 	const isScratching = ref<boolean>(false)
-
-	const PRIZE = 100000
 
 	onMounted(async () => {
 		await nextTick()
@@ -94,6 +93,19 @@
 		ctx.arc(x, y, 35, 0, Math.PI * 2)
 		ctx.fill()
 	}
+
+	interface Tier {
+		winAmount: number
+		/** Percentage chance from 0 to 100 (inclusive) */
+		chance: number
+	}
+	const tiers: [Tier, Tier, Tier, Tier, Tier] = [
+		{ winAmount: 100, chance: 80 },
+		{ winAmount: 200, chance: 60 },
+		{ winAmount: 500, chance: 40 },
+		{ winAmount: 1000, chance: 25 },
+		{ winAmount: 5000, chance: 10 },
+	]
 </script>
 
 <template>
@@ -109,9 +121,10 @@
 				@mouseup="endScratch"
 				class="canvas"
 			></canvas>
+			<Connections :tiers="tiers" />
 			<div class="canvas-background"></div>
 		</div>
-		<p class="font-kadwa">WIN UP TO ${{ PRIZE }}</p>
+		<h2>WIN UP TO ${{ tiers[4].winAmount }}</h2>
 	</div>
 </template>
 
