@@ -1,4 +1,5 @@
 <script setup lang="ts">
+	import stars from '../assets/scratcher/stars.svg'
 	import CardBorderSVG from '../components/CardBorderSVG.vue'
 	import Connections from '../components/Connections.vue'
 	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
@@ -10,6 +11,8 @@
 	const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 	const isScratching = ref<boolean>(false)
+
+	const BRUSH_SIZE = 35 // <- this changes the radius of the brush
 
 	onMounted(async () => {
 		await nextTick()
@@ -33,12 +36,8 @@
 		})
 
 		const canvas = canvasRef.value
-		if (!canvas) return
-		const rect = canvas.getBoundingClientRect()
-		canvas.width = rect.width
-		canvas.height = rect.height
-		const ctx = canvas.getContext('2d')
-		if (!ctx) return
+		const ctx = canvas?.getContext('2d')
+		if (!ctx || !canvas) return
 
 		const img = new Image()
 		img.src = ScratchSufrace
@@ -90,7 +89,7 @@
 		ctx.lineCap = 'round'
 		ctx.lineWidth = 40
 		ctx.beginPath()
-		ctx.arc(x, y, 35, 0, Math.PI * 2)
+		ctx.arc(x, y, BRUSH_SIZE, 0, Math.PI * 2)
 		ctx.fill()
 	}
 
@@ -104,12 +103,18 @@
 		{ winAmount: 200, chance: 60 },
 		{ winAmount: 500, chance: 40 },
 		{ winAmount: 1000, chance: 25 },
-		{ winAmount: 5000, chance: 10 },
+		{ winAmount: 50, chance: 10 },
 	]
 </script>
 
 <template>
 	<div id="wrapper" class="background">
+		<img class="stars" :src="stars" />
+		<img class="stars flipped" :src="stars" />
+		<header>
+			<h1 class="font-kadwa heading">scratch</h1>
+			<h1 class="font-kadwa font--38 heading">& win</h1>
+		</header>
 		<div id="glowing-wrapper" class="relative">
 			<CardBorderSVG class="borderSVG" ref="svgRef" />
 			<canvas
@@ -124,26 +129,59 @@
 			<Connections :tiers="tiers" />
 			<div class="canvas-background"></div>
 		</div>
-		<h2>WIN UP TO ${{ tiers[4].winAmount }}</h2>
+		<h2 class="font-kadwa heading">win up to ${{ tiers[4].winAmount }}</h2>
 	</div>
 </template>
 
 <style scoped>
-	p {
-		-webkit-text-stroke-width: 1.52px;
+	.stars {
+		width: 7rem;
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		&.flipped {
+			left: 10px;
+			-webkit-transform: scaleX(-1);
+			transform: scaleX(-1);
+		}
+	}
+	.heading {
+		line-height: 1;
+		-webkit-text-stroke-width: 1px;
 		-webkit-text-stroke-color: #fff;
 		font-family: Kadwa, serif;
 		width: max-content;
 		font-size: 3.2rem;
 		font-style: normal;
 		font-weight: 700;
-		line-height: 200.54%;
 		text-transform: uppercase;
+		text-align: center;
+		width: 100%;
+	}
+
+	header h1 {
+		background: linear-gradient(97deg, #f00 18.79%, #900 80.86%);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+
+	.font--64 {
+		font-size: 4.125rem;
+		line-height: 1;
+	}
+
+	.font--38 {
+		font-size: 2.4rem;
+		-webkit-text-stroke-width: 0.75px;
+		line-height: 1;
 	}
 
 	#glowing-wrapper {
 		position: relative;
 		pointer-events: none;
+		margin-top: 2.5rem;
+		margin-bottom: 4.5rem;
 	}
 
 	w-full {
@@ -151,19 +189,25 @@
 	}
 
 	#wrapper {
-		padding: 4.25rem;
+		padding-top: 3.75rem;
+		padding-bottom: 4.5rem;
+		padding-right: 3.25rem;
+		padding-left: 3.25rem;
 		position: relative;
 		z-index: 1;
 	}
 
+	.borderSVG {
+		min-width: 22rem;
+	}
+
 	.canvas-background {
 		position: absolute;
-		width: calc(100% - 2.75rem);
-		height: calc(100% - 3rem);
-		inset: 1.53rem;
+		inset: 1rem;
 		z-index: -2;
 		border-radius: 0.9rem;
 		background-color: hsla(5, 100%, 17%, 1);
+
 		overflow: hidden;
 	}
 
@@ -186,9 +230,9 @@
 		top: 0;
 		border-radius: 0.9rem;
 		left: 0;
-		width: calc(100% - 2.75rem);
-		height: calc(100% - 3rem);
-		inset: 1.53rem;
+		width: calc(100% - 2rem);
+		height: calc(100% - 2rem);
+		inset: 1rem;
 		z-index: -1;
 		pointer-events: auto;
 	}
@@ -197,9 +241,12 @@
 		display: flex;
 		flex-direction: column;
 		border-radius: 1rem;
-		gap: 6rem;
 		text-align: center;
 		background: radial-gradient(65.8% 73.84% at 49.74% 47.93%, #ffdc00 0%, #ff9600 100%), #fff;
+		background-size: cover;
+		background-repeat: no-repeat;
+		background-position: center center;
+		background-image: url('../assets/scratcher/background.png');
 	}
 
 	@keyframes breathe {
