@@ -1,51 +1,36 @@
 <script setup lang="ts">
-	import GlowingSVG from '../components/GlowingSVG.vue'
-	import EmptySVG from '../components/EmptySVG.vue'
+	import CardBorderSVG from '../components/CardBorderSVG.vue'
 	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
 	import { ref, onMounted, nextTick } from 'vue'
+
+	window.parent.postMessage({ action: 'close' }, '*')
 
 	const svgRef = ref<SVGSVGElement | null>(null)
 	const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-	const glowingBalls = ref<{ x: number; y: number; animate?: boolean }[]>([])
 	const isScratching = ref<boolean>(false)
 
-	const SIZE: number = 300
 	const PRIZE = 100000
-
-	function addGlowingBalls(svg: SVGSVGElement, groupSelector = '#balls path') {
-		const paths = svg.querySelectorAll(groupSelector) as NodeListOf<SVGPathElement>
-		const wrapper = svg.closest('#glowing-wrapper')!
-		const wrapperRect = wrapper.getBoundingClientRect()
-
-		paths.forEach((path) => {
-			const bbox = path.getBBox()
-			const centerX = bbox.x + bbox.width / 2
-			const centerY = bbox.y + bbox.height / 2
-
-			// Convert SVG point to screen coords
-			const pt = svg.createSVGPoint()
-			pt.x = centerX
-			pt.y = centerY
-			const screenPt = pt.matrixTransform(svg.getScreenCTM()!)
-
-			const relativeX = screenPt.x - wrapperRect.left
-			const relativeY = screenPt.y - wrapperRect.top
-
-			glowingBalls.value.push({ x: relativeX, y: relativeY })
-		})
-	}
 
 	onMounted(async () => {
 		await nextTick()
 
-		const svg = svgRef.value?.$el ?? svgRef.value
-		if (svg) addGlowingBalls(svg)
+		resizeCanvas()
 
-		glowingBalls.value.forEach((ball, i) => {
+		window.addEventListener('resize', resizeCanvas)
+
+		const svgRoot = svgRef.value?.$el as SVGSVGElement | null
+		if (!svgRoot) return
+
+		const lightsGroup = svgRoot.querySelector('#lights')
+		if (!lightsGroup) return
+
+		const paths = lightsGroup.querySelectorAll('path')
+
+		paths.forEach((path, i) => {
 			setTimeout(() => {
-				ball.animate = true
-			}, i * 35)
+				path.classList.add('animate-glow')
+			}, i * 200)
 		})
 
 		const canvas = canvasRef.value
@@ -62,6 +47,15 @@
 			ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 		}
 	})
+
+	function resizeCanvas() {
+		const canvas = canvasRef.value
+		if (!canvas) return
+
+		const rect = canvas.getBoundingClientRect()
+		canvas.width = rect.width
+		canvas.height = rect.height
+	}
 
 	function startScratch() {
 		isScratching.value = true
@@ -97,7 +91,7 @@
 		ctx.lineCap = 'round'
 		ctx.lineWidth = 40
 		ctx.beginPath()
-		ctx.arc(x, y, 50, 0, Math.PI * 2)
+		ctx.arc(x, y, 35, 0, Math.PI * 2)
 		ctx.fill()
 	}
 </script>
@@ -105,18 +99,7 @@
 <template>
 	<div id="wrapper" class="background">
 		<div id="glowing-wrapper" class="relative">
-			<EmptySVG ref="svgRef" />
-			<GlowingSVG
-				v-for="(pt, i) in glowingBalls"
-				:key="i"
-				:class="{ 'animate-glow': pt.animate }"
-				:style="{
-					visibility: i % 2 ? 'hidden' : 'visible',
-					opacity: 0,
-					left: `${pt.x}px`,
-					top: `${pt.y}px`,
-				}"
-			/>
+			<CardBorderSVG class="borderSVG" ref="svgRef" />
 			<canvas
 				ref="canvasRef"
 				@mousemove="scratch"
@@ -126,6 +109,7 @@
 				@mouseup="endScratch"
 				class="canvas"
 			></canvas>
+			<div class="canvas-background"></div>
 		</div>
 		<p class="font-kadwa">WIN UP TO ${{ PRIZE }}</p>
 	</div>
@@ -133,8 +117,6 @@
 
 <style scoped>
 	p {
-		leading-trim: both;
-		text-edge: cap;
 		-webkit-text-stroke-width: 1.52px;
 		-webkit-text-stroke-color: #fff;
 		font-family: Kadwa, serif;
@@ -142,11 +124,13 @@
 		font-size: 3.2rem;
 		font-style: normal;
 		font-weight: 700;
-		line-height: 200.54%; /* 6.09794rem */
+		line-height: 200.54%;
 		text-transform: uppercase;
 	}
+
 	#glowing-wrapper {
 		position: relative;
+		pointer-events: none;
 	}
 
 	w-full {
@@ -156,39 +140,45 @@
 	#wrapper {
 		padding: 4.25rem;
 		position: relative;
-		img {
-			pointer-events: none;
-		}
+		z-index: 1;
 	}
 
+	.canvas-background {
+		position: absolute;
+		width: calc(100% - 2.75rem);
+		height: calc(100% - 3rem);
+		inset: 1.53rem;
+		z-index: -2;
+		border-radius: 0.9rem;
+		background-color: hsla(5, 100%, 17%, 1);
+		overflow: hidden;
+	}
+
+	.canvas-background::after {
+		content: '';
+		opacity: 0.35;
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		background: radial-gradient(47.51% 52.94% at 50% 50%, #e1563c 0%, #bd223e 100%);
+		mix-blend-mode: normal;
+		pointer-events: none;
+	}
 	.canvas {
 		&:hover {
 			cursor: crosshair;
 		}
-		z-index: -1;
 		touch-action: none;
 		position: absolute;
 		top: 0;
 		border-radius: 0.9rem;
 		left: 0;
-		width: calc(100% - 3.86rem);
-		height: calc(100% - 4.3rem);
-		z-index: 1;
-		inset: 1.93rem;
+		width: calc(100% - 2.75rem);
+		height: calc(100% - 3rem);
+		inset: 1.53rem;
+		z-index: -1;
+		pointer-events: auto;
 	}
-
-	/*
-		.box {
-			height: 100%;
-			width: 100%;
-			position: absolute;
-			top: 0;
-			left: 0;
-		}
-		.overlay {
-			z-index: 1;
-		}
-		   */
 
 	.background {
 		display: flex;
@@ -198,6 +188,7 @@
 		text-align: center;
 		background: radial-gradient(65.8% 73.84% at 49.74% 47.93%, #ffdc00 0%, #ff9600 100%), #fff;
 	}
+
 	@keyframes breathe {
 		0% {
 			opacity: 0;
@@ -213,7 +204,7 @@
 		}
 	}
 
-	.animate-glow {
-		animation: breathe 2.2s ease-in-out infinite;
+	:deep(.animate-glow) {
+		animation: breathe 2.5s ease-in-out infinite;
 	}
 </style>
