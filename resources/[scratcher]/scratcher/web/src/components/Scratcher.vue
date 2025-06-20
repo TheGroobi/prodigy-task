@@ -32,7 +32,7 @@
 		paths.forEach((path, i) => {
 			setTimeout(() => {
 				path.classList.add('animate-glow')
-			}, i * 200)
+			}, i * 75)
 		})
 
 		const canvas = canvasRef.value
@@ -99,11 +99,11 @@
 		chance: number
 	}
 	const tiers: [Tier, Tier, Tier, Tier, Tier] = [
-		{ winAmount: 100, chance: 80 },
-		{ winAmount: 200, chance: 60 },
-		{ winAmount: 500, chance: 40 },
-		{ winAmount: 1000, chance: 25 },
-		{ winAmount: 50, chance: 10 },
+		{ winAmount: 0, chance: 10 },
+		{ winAmount: 500, chance: 5 },
+		{ winAmount: 10000, chance: 0.1 },
+		{ winAmount: 500000, chance: 0.05 },
+		{ winAmount: 9000000, chance: 0.0001 },
 	]
 </script>
 
@@ -198,13 +198,13 @@
 	}
 
 	.borderSVG {
-		min-width: 22rem;
+		min-width: 16rem;
 	}
 
 	.canvas-background {
 		position: absolute;
 		inset: 1rem;
-		z-index: -2;
+		z-index: -3;
 		border-radius: 0.9rem;
 		background-color: hsla(5, 100%, 17%, 1);
 
@@ -251,20 +251,20 @@
 
 	@keyframes breathe {
 		0% {
+			opacity: 1;
+		}
+		40% {
 			opacity: 0;
 		}
-		20% {
-			opacity: 1;
-		}
-		80% {
-			opacity: 1;
+		60% {
+			opacity: 0;
 		}
 		100% {
-			opacity: 0;
+			opacity: 1;
 		}
 	}
 
 	:deep(.animate-glow) {
-		animation: breathe 2.5s ease-in-out infinite;
+		animation: breathe 1.2s ease-in-out infinite;
 	}
 </style>

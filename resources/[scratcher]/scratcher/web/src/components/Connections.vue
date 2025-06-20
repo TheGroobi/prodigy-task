@@ -1,8 +1,8 @@
 <script setup lang="ts">
+	import CoinSVG from './CoinSVG.vue'
+
 	interface Tier {
 		winAmount: number
-
-		/** Percentage chance from 0 to 100 (inclusive) */
 		chance: number
 	}
 
@@ -14,11 +14,13 @@
 
 	function rollWinner(tiers: Props['tiers']): number {
 		const total = tiers.reduce((sum, tier) => sum + tier.chance, 0)
-		const rand = Math.random() * total
+		if (total === 0) return 0
 
+		const rand = Math.random()
 		let sum = 0
-		for (let i = 0; i < tiers.length; i++) {
-			sum += tiers[i].chance
+
+		for (let i = tiers.length - 1; i >= 0; i--) {
+			sum += tiers[i].chance / total
 			if (rand < sum) return i
 		}
 
@@ -31,19 +33,32 @@
 		return 'crawler'
 	}
 
+	function isInvalid(
+		COLS: number,
+		ROWS: number,
+		r: number,
+		c: number,
+		grid: number[][],
+		visited = new Set<string>(),
+	): boolean {
+		return (
+			r < 0 || r >= ROWS || c < 0 || c >= COLS || grid[r][c] === 1 || visited.has(`${r}-${c}`)
+		)
+	}
+
 	function generateGrid(
 		tiers: Props['tiers'],
 		rows = 5,
 		cols = 4,
-	): { grid: (0 | 1)[][]; winningTier: Tier } {
+	): { grid: (0 | 1)[][]; winningTier: Tier; connections: number } {
 		const winnerIdx = rollWinner(tiers)
 		const connections = winnerIdx + 1
 		const placement = getPlacement(connections)
-		const extraConnections = Math.max(0, Math.floor(Math.random() * 6) - (winnerIdx + 1))
+		const extraConnections = 4 // Math.max(0, Math.floor(Math.random() * 6) - (winnerIdx + 1))
 
 		const grid = Array.from({ length: rows }, () => Array(cols).fill(0))
 
-		const visited = new Set<string>()
+		let visited = new Set<string>()
 		const dirs = [
 			[0, 1],
 			[1, 0],
@@ -70,60 +85,135 @@
 		if (placement === 'crawler') {
 			let r = Math.floor(Math.random() * rows)
 			let c = Math.floor(Math.random() * cols)
-			grid[r][c] = 1
-			visited.add(`${r}-${c}`)
 
-			let placed = 1
+			let placed = 0
+			if (connections === 1) {
+				grid[r][c] = 1
+				placed++
+			}
 
 			while (placed < connections) {
+				let r = Math.floor(Math.random() * rows)
+				let c = Math.floor(Math.random() * cols)
 				const randomDirs = [...dirs].sort(() => Math.random() - 0.5)
-				let moved = false
 
-				// choose one direction and follow it until connections end
 				for (const [dr, dc] of randomDirs) {
-					const nr = r + dr
-					const nc = c + dc
-					if (
-						nr >= 0 &&
-						nr < rows &&
-						nc >= 0 &&
-						nc < cols &&
-						grid[nr][nc] === 0 &&
-						!visited.has(`${nr}-${nc}`)
-					) {
-						grid[nr][nc] = 1
-						visited.add(`${nr}-${nc}`)
+					let valid = true
 
-						r = nr
-						c = nc
-
-						placed++
-						moved = true
-						break
+					if (r + dr * connections >= rows || c + dc * connections >= cols) {
+						continue
 					}
 
-					if (!moved) break // stuck
+					for (let i = 0; i < connections; i++) {
+						const nr = r + dr * i
+						const nc = c + dc * i
+
+						if (isInvalid(rows, cols, nr, nc, grid, visited)) {
+							valid = false
+							break
+						}
+					}
+
+					if (valid) {
+						for (let i = 0; i < connections; i++) {
+							const nr = r + dr * i
+							const nc = c + dc * i
+
+							grid[nr][nc] = 1
+							visited.add(`${nr}-${nc}`)
+							placed++
+						}
+						break
+					}
 				}
 			}
 		}
 
-		return { grid, winningTier: tiers[winnerIdx] }
+		let extraPlaced = 0
+		let attempts = 0
+
+		while (extraPlaced < extraConnections && attempts < 100) {
+			attempts++
+			let r = Math.floor(Math.random() * rows)
+			let c = Math.floor(Math.random() * cols)
+
+			if (isInvalid(cols, rows, r, c, grid, visited)) continue
+
+			let valid = true
+			for (const [dr, dc] of dirs) {
+				const nr = r + dr
+				const nc = c + dc
+
+				if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue
+				if (grid[nr][nc] === 1) {
+					valid = false
+					break
+				}
+			}
+
+			if (valid) {
+				grid[r][c] = 1
+				visited.add(`${r}-${c}`)
+				extraPlaced++
+			}
+		}
+
+		return { grid, winningTier: tiers[winnerIdx], connections }
 	}
 
 	const result = generateGrid(
-		props.tiers ?? [
-			{ winAmount: 100, chance: 60 },
-			{ winAmount: 200, chance: 25 },
-			{ winAmount: 500, chance: 10 },
-			{ winAmount: 1000, chance: 4 },
-			{ winAmount: 5000, chance: 1 },
+		props?.tiers ?? [
+			{ winAmount: 100, chance: 10 },
+			{ winAmount: 200, chance: 5 },
+			{ winAmount: 500, chance: 0.1 },
+			{ winAmount: 1000, chance: 0.05 },
+			{ winAmount: 5000, chance: 0.0001 },
 		],
 	)
 
 	console.log(result.grid)
-	console.log('Winner Tier:', result.winningTier)
+	console.log(result.connections)
+	console.log(result.winningTier)
 </script>
 
 <template>
-	<div></div>
+	<div class="wrapper">
+		<div class="grid">
+			<div
+				v-for="row in result.grid.flatMap((row, r) =>
+					row.map((active, c) => ({ active, r, c })),
+				)"
+				:key="`${row.r}-${row.c}`"
+				class="cell"
+			>
+				<CoinSVG class="coin" :active="row.active === 1" />
+			</div>
+		</div>
+	</div>
 </template>
+
+<style scoped>
+	.wrapper {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 90%;
+		height: 90%;
+		padding: 2rem;
+		z-index: -2;
+	}
+
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		grid-template-rows: repeat(5, minmax(0, 1fr));
+		gap: 0.7rem;
+		place-items: center;
+	}
+
+	.glow-connection {
+		width: 1rem;
+		background: black;
+	}
+</style>
