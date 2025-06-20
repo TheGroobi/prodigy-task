@@ -6,11 +6,10 @@
 	<svg
 		v-if="active"
 		v-bind="$attrs"
-		width="90"
-		height="90"
 		viewBox="0 0 82 82"
 		fill="none"
 		xmlns="http://www.w3.org/2000/svg"
+		preserveAspectRatio="xMidYMid meet"
 	>
 		<path
 			d="M40.64 81.28C63.0848 81.28 81.28 63.0849 81.28 40.64C81.28 18.1952 63.0848 0 40.64 0C18.1951 0 0 18.1952 0 40.64C0 63.0849 18.1951 81.28 40.64 81.28Z"
@@ -148,10 +147,9 @@
 	</svg>
 
 	<svg
+		preserveAspectRatio="xMidYMid meet"
 		v-else
 		v-bind="$attrs"
-		width="90"
-		height="90"
 		viewBox="0 0 82 82"
 		fill="none"
 		xmlns="http://www.w3.org/2000/svg"
@@ -291,3 +289,11 @@
 		</defs>
 	</svg>
 </template>
+<style scoped>
+	svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		max-width: 100%;
+	}
+</style>

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 	import stars from '../assets/scratcher/stars.png'
 	import CardBorderSVG from '../components/CardBorderSVG.vue'
+	import MegaBigWin from './MegaBigWin.vue'
+	import MegaBigLose from './MegaBigLose.vue'
 	import Connections from '../components/Connections.vue'
 	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
-	import { ref, onMounted, nextTick } from 'vue'
+	import { ref, onMounted, nextTick, watch } from 'vue'
+	import { shoot } from '@/lib/confetti'
 
 	window.parent.postMessage({ action: 'close' }, '*')
 
@@ -11,7 +14,9 @@
 	const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 	const isScratching = ref<boolean>(false)
-
+	let hasWon = ref<boolean | null>(null)
+	let scratched = ref<boolean>(false)
+	let mounted = ref<boolean>(false)
 	const BRUSH_SIZE = 35 // <- this changes the radius of the brush
 
 	onMounted(async () => {
@@ -44,6 +49,10 @@
 		img.onload = () => {
 			ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 		}
+		await nextTick()
+		setTimeout(() => {
+			mounted.value = true
+		}, 150)
 	})
 
 	function resizeCanvas() {
@@ -57,15 +66,26 @@
 
 	function startScratch() {
 		isScratching.value = true
+
+		if (!scratched.value) {
+			console.log('Started scratching')
+			scratched.value = true
+		}
 	}
 
 	function endScratch() {
 		isScratching.value = false
 	}
 
+	const seenCoins = ref<Set<string>>(new Set())
 	function scratch(e: MouseEvent | TouchEvent) {
 		e.preventDefault()
 		if (!isScratching.value) return
+
+		if (!scratched.value) {
+			console.log('Started scratching')
+			scratched.value = true
+		}
 
 		const canvas = canvasRef.value
 		if (!canvas) return
@@ -91,24 +111,256 @@
 		ctx.beginPath()
 		ctx.arc(x, y, BRUSH_SIZE, 0, Math.PI * 2)
 		ctx.fill()
+
+		const coinEls = document.querySelectorAll('.coin-wrapper')
+		coinEls.forEach((el, index) => {
+			const box = el.getBoundingClientRect()
+			const cx = box.left + box.width / 2
+			const cy = box.top + box.height / 2
+
+			const dist = Math.sqrt((x + rect.left - cx) ** 2 + (y + rect.top - cy) ** 2)
+
+			if (dist < BRUSH_SIZE) {
+				const r = Math.floor(index / 4) // <- hard coded 4 columns
+				const c = index % 4
+				if (!seenCoins.value.has(`${r}-${c}`)) {
+					seenCoins.value.add(`${r}-${c}`)
+				}
+			}
+		})
 	}
 
 	interface Tier {
 		winAmount: number
-		/** Percentage chance from 0 to 100 (inclusive) */
 		chance: number
 	}
+
 	const tiers: [Tier, Tier, Tier, Tier, Tier] = [
-		{ winAmount: 0, chance: 10 },
+		{ winAmount: 0, chance: 0 }, // base tier for fallback - not connecting anything
 		{ winAmount: 500, chance: 5 },
 		{ winAmount: 10000, chance: 0.1 },
-		{ winAmount: 500000, chance: 0.05 },
-		{ winAmount: 9000000, chance: 0.0001 },
+		{ winAmount: 50000, chance: 0.05 },
+		{ winAmount: 90000, chance: 0.0001 },
 	]
+
+	function rollWinner(t: typeof tiers): number {
+		const total = t.reduce((sum, tier) => sum + tier.chance, 0)
+		if (total === 0) return 0
+
+		const rand = parseFloat((Math.random() * 100).toFixed(6))
+
+		let sum = 0
+		for (let i = 0; i < t.length; i++) {
+			sum += t[i].chance
+			if (rand < sum) return i
+		}
+
+		return 0 // fallback to tier 0 - nothing won
+	}
+
+	const winners = new Array(tiers.length).fill(0)
+	for (let i = 0; i < 1_000_000; i++) {
+		winners[rollWinner(tiers)]++
+	}
+	console.log('1 mil random rolls :', winners)
+
+	function getPlacement(connections: number): 'column' | 'row' | 'crawler' {
+		if (connections === 5) return 'column'
+		if (connections === 4) return Math.random() * 0.5 ? 'row' : 'column'
+		return 'crawler'
+	}
+
+	function isInvalid(
+		COLS: number,
+		ROWS: number,
+		r: number,
+		c: number,
+		grid: number[][],
+		visited = new Set<string>(),
+	): boolean {
+		return (
+			r < 0 || r >= ROWS || c < 0 || c >= COLS || grid[r][c] === 1 || visited.has(`${r}-${c}`)
+		)
+	}
+
+	let direction: 'left' | 'right' | 'top' | 'bottom'
+	let startCell: [number, number]
+	let endCell: [number, number]
+	let winning = ref<string[]>([])
+	function generateGrid(
+		t: typeof tiers,
+		rows = 5,
+		cols = 4,
+	): { grid: (0 | 1 | 2)[][]; winningTier: Tier; connections: number } {
+		const winnerIdx = rollWinner(t)
+		const connections = winnerIdx + 1
+		const placement = getPlacement(connections)
+		const extraConnections = 4 // Math.max(0, Math.floor(Math.random() * 6) - (winnerIdx + 1))
+
+		const grid = Array.from({ length: rows }, () => Array(cols).fill(0))
+
+		let visited = new Set<string>()
+		const dirs: Record<typeof direction, number[]> = {
+			right: [0, 1],
+			top: [1, 0],
+			left: [0, -1],
+			bottom: [-1, 0],
+		}
+
+		if (placement === 'column') {
+			const col = Math.floor(Math.random() * grid[0].length)
+			startCell = [0, col]
+			endCell = [connections - 1, col]
+			for (let r = 0; r < connections; r++) {
+				grid[r][col] = 2
+				visited.add(`${r}-${col}`)
+				winning.value.push(`${r}-${col}`)
+			}
+			direction = 'bottom'
+		}
+
+		if (placement === 'row') {
+			const row = Math.floor(Math.random() * grid.length)
+			startCell = [row, 0]
+			endCell = [row, connections - 1]
+
+			for (let c = 0; c < connections; c++) {
+				grid[row][c] = 2
+				visited.add(`${row}-${c}`)
+				winning.value.push(`${row}-${c}`)
+			}
+
+			direction = 'right'
+		}
+
+		if (placement === 'crawler') {
+			let r = Math.floor(Math.random() * rows)
+			let c = Math.floor(Math.random() * cols)
+
+			let placed = 0
+			if (connections === 1) {
+				grid[r][c] = 2
+				placed++
+			}
+
+			while (placed < connections) {
+				let r = Math.floor(Math.random() * rows)
+				let c = Math.floor(Math.random() * cols)
+				const randomDirs = Object.entries(dirs).sort(() => Math.random() - 0.5)
+
+				for (const [dirName, [dr, dc]] of randomDirs) {
+					let valid = true
+
+					if (r + dr * connections >= rows || c + dc * connections >= cols) {
+						continue
+					}
+
+					for (let i = 0; i < connections; i++) {
+						const nr = r + dr * i
+						const nc = c + dc * i
+
+						if (isInvalid(rows, cols, nr, nc, grid, visited)) {
+							valid = false
+							break
+						}
+					}
+
+					if (valid) {
+						startCell = [r, c]
+						direction = dirName as typeof direction
+
+						for (let i = 0; i < connections; i++) {
+							const nr = r + dr * i
+							const nc = c + dc * i
+
+							grid[nr][nc] = 2
+							visited.add(`${nr}-${nc}`)
+							winning.value.push(`${nr}-${nc}`)
+							placed++
+							endCell = [nr, nc]
+						}
+
+						break
+					}
+				}
+			}
+		}
+
+		let extraPlaced = 0
+		let attempts = 0
+
+		while (extraPlaced < extraConnections && attempts < 100) {
+			attempts++
+			let r = Math.floor(Math.random() * rows)
+			let c = Math.floor(Math.random() * cols)
+
+			if (isInvalid(cols, rows, r, c, grid, visited)) continue
+
+			let valid = true
+			for (const [dr, dc] of Object.values(dirs)) {
+				const nr = r + dr
+				const nc = c + dc
+
+				if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue
+				if (grid[nr][nc]) {
+					valid = false
+					break
+				}
+			}
+
+			if (valid) {
+				grid[r][c] = 1
+				visited.add(`${r}-${c}`)
+				extraPlaced++
+			}
+		}
+
+		return { grid, winningTier: t[winnerIdx], connections }
+	}
+
+	const ROWS = 5
+	const COLS = 4
+	const result = generateGrid(tiers, ROWS, COLS)
+
+	console.log(result.grid)
+	console.log(result.connections)
+	console.log(result.winningTier)
+
+	watch(
+		() => seenCoins.value.size,
+		() => {
+			if (hasWon.value !== null || !scratched) return
+
+			const winningRevealed = winning.value.every((cell) => seenCoins.value.has(cell))
+
+			if (winningRevealed && result.connections !== 1) {
+				setTimeout(() => {
+					shoot()
+					console.log(`User has won : $${result.winningTier.winAmount} at chance
+${result.winningTier.chance}`)
+					hasWon.value = true
+				}, 2000)
+			}
+
+			if (seenCoins.value.size === ROWS * COLS) {
+				setTimeout(() => {
+					console.log(`User has not won anything`)
+					hasWon.value = false
+				}, 500)
+			}
+		},
+	)
+
+	watch(mounted, () => {
+		console.log(mounted.value)
+	})
 </script>
 
 <template>
 	<div id="wrapper" class="background">
+		<MegaBigWin :prize="result.winningTier.winAmount" v-if="hasWon === true" />
+		<MegaBigLose v-else-if="hasWon === false" />
+
 		<img class="stars" :src="stars" />
 		<img class="stars flipped" :src="stars" />
 		<header>
@@ -126,7 +378,15 @@
 				@mouseup="endScratch"
 				class="canvas"
 			></canvas>
-			<Connections :tiers="tiers" />
+			<Connections
+				v-if="mounted === true"
+				:grid="result.grid"
+				:seen="seenCoins"
+				:startCell="startCell"
+				:endCell="endCell"
+				:direction="direction"
+				:connections="result.connections"
+			/>
 			<div class="canvas-background"></div>
 		</div>
 		<h2 class="font-kadwa heading">win up to ${{ tiers[4].winAmount }}</h2>

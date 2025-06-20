@@ -2051,5 +2051,7 @@
 	svg {
 		z-index: 1;
 		pointer-events: none;
+		display: block;
+		width: 100%;
 	}
 </style>

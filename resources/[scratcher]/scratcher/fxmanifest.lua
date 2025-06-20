@@ -18,6 +18,7 @@ files({
 	"web/dist/assets/*.js",
 	"web/dist/assets/*.css",
 	"web/dist/assets/*.png",
+	"web/dist/assets/*.jpg",
 })
 
 -- Extra data can be used as well

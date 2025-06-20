@@ -26,4 +26,16 @@
 		background-clip: text;
 		color: transparent;
 	}
+	*,
+	*::after,
+	*::before {
+		box-sizing: content-box;
+		-webkit-user-select: none; /* Safari */
+		-ms-user-select: none; /* IE 10 and IE 11 */
+		user-select: none; /* Standard syntax */
+	}
+
+	img {
+		max-width: 100%;
+	}
 </style>
