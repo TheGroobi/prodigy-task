@@ -46,11 +46,14 @@
 		)
 	}
 
+	let direction: 'left' | 'right' | 'top' | 'bottom'
+	let startCell: [number, number]
+	let endCell: [number, number]
 	function generateGrid(
 		tiers: Props['tiers'],
 		rows = 5,
 		cols = 4,
-	): { grid: (0 | 1)[][]; winningTier: Tier; connections: number } {
+	): { grid: (0 | 1 | 2)[][]; winningTier: Tier; connections: number } {
 		const winnerIdx = rollWinner(tiers)
 		const connections = winnerIdx + 1
 		const placement = getPlacement(connections)
@@ -59,27 +62,35 @@
 		const grid = Array.from({ length: rows }, () => Array(cols).fill(0))
 
 		let visited = new Set<string>()
-		const dirs = [
-			[0, 1],
-			[1, 0],
-			[0, -1],
-			[-1, 0],
-		]
+		const dirs: Record<typeof direction, number[]> = {
+			right: [0, 1],
+			top: [1, 0],
+			left: [0, -1],
+			bottom: [-1, 0],
+		}
 
 		if (placement === 'column') {
 			const col = Math.floor(Math.random() * grid[0].length)
+			startCell = [0, col]
+			endCell = [connections - 1, col]
 			for (let r = 0; r < connections; r++) {
 				grid[r][col] = 1
 				visited.add(`${r}-${col}`)
 			}
+			direction = 'bottom'
 		}
 
 		if (placement === 'row') {
 			const row = Math.floor(Math.random() * grid.length)
+			startCell = [row, 0]
+			endCell = [row, connections - 1]
+
 			for (let c = 0; c < connections; c++) {
 				grid[row][c] = 1
 				visited.add(`${row}-${c}`)
 			}
+
+			direction = 'right'
 		}
 
 		if (placement === 'crawler') {
@@ -88,16 +99,16 @@
 
 			let placed = 0
 			if (connections === 1) {
-				grid[r][c] = 1
+				grid[r][c] = 2
 				placed++
 			}
 
 			while (placed < connections) {
 				let r = Math.floor(Math.random() * rows)
 				let c = Math.floor(Math.random() * cols)
-				const randomDirs = [...dirs].sort(() => Math.random() - 0.5)
+				const randomDirs = Object.entries(dirs).sort(() => Math.random() - 0.5)
 
-				for (const [dr, dc] of randomDirs) {
+				for (const [dirName, [dr, dc]] of randomDirs) {
 					let valid = true
 
 					if (r + dr * connections >= rows || c + dc * connections >= cols) {
@@ -115,14 +126,20 @@
 					}
 
 					if (valid) {
+						startCell = [r, c]
+						direction = dirName as typeof direction
+						console.log(direction, [dr, dc])
+
 						for (let i = 0; i < connections; i++) {
 							const nr = r + dr * i
 							const nc = c + dc * i
 
-							grid[nr][nc] = 1
+							grid[nr][nc] = 2
 							visited.add(`${nr}-${nc}`)
 							placed++
+							endCell = [nr, nc]
 						}
+
 						break
 					}
 				}
@@ -140,12 +157,12 @@
 			if (isInvalid(cols, rows, r, c, grid, visited)) continue
 
 			let valid = true
-			for (const [dr, dc] of dirs) {
+			for (const [dr, dc] of Object.values(dirs)) {
 				const nr = r + dr
 				const nc = c + dc
 
 				if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue
-				if (grid[nr][nc] === 1) {
+				if (grid[nr][nc]) {
 					valid = false
 					break
 				}
@@ -174,19 +191,39 @@
 	console.log(result.grid)
 	console.log(result.connections)
 	console.log(result.winningTier)
+
+	function isStart(r: number, c: number) {
+		if (startCell) {
+			return r === startCell[0] && c === startCell[1]
+		} else {
+			false
+		}
+	}
+
+	function isEnd(r: number, c: number) {
+		if (endCell) {
+			return r === endCell[0] && c === endCell[1]
+		} else {
+			false
+		}
+	}
 </script>
 
 <template>
 	<div class="wrapper">
 		<div class="grid">
 			<div
-				v-for="row in result.grid.flatMap((row, r) =>
-					row.map((active, c) => ({ active, r, c })),
-				)"
+				v-for="row in result.grid.flatMap((row, r) => row.map((val, c) => ({ val, r, c })))"
+				:class="[
+					'coin-wrapper',
+					row.val === 2 && result.connections !== 1 ? 'glow' : '',
+					row.val === 2 && isStart(row.r, row.c) ? 'glow-start' : '',
+					row.val === 2 && isEnd(row.r, row.c) ? 'glow-end' : '',
+					direction,
+				]"
 				:key="`${row.r}-${row.c}`"
-				class="cell"
 			>
-				<CoinSVG class="coin" :active="row.active === 1" />
+				<CoinSVG :active="Boolean(row.val)" class="coin" />
 			</div>
 		</div>
 	</div>
@@ -198,22 +235,87 @@
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		width: 90%;
-		height: 90%;
-		padding: 2rem;
+		width: 100%;
+		height: 100%;
+		padding: 2.5rem 2.5rem 3rem 2.5rem;
 		z-index: -2;
+		display: grid;
+		place-items: center;
 	}
 
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		grid-template-rows: repeat(5, minmax(0, 1fr));
-		gap: 0.7rem;
 		place-items: center;
 	}
+	.coin-wrapper {
+		height: calc(90px + 0.5rem);
+		padding: 0.25rem;
+		position: relative;
+	}
 
-	.glow-connection {
-		width: 1rem;
-		background: black;
+	:deep(.glow::before) {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		border-radius: inherit;
+
+		background: linear-gradient(
+			0deg,
+			rgba(255, 220, 0, 0.24) 15.98%,
+			rgba(255, 231, 35, 0.24) 22.91%,
+			rgba(255, 244, 74, 0.24) 31.38%,
+			rgba(255, 252, 98, 0.24) 37.55%,
+			rgba(255, 255, 107, 0.24) 42.17%,
+			rgba(255, 220, 0, 0.24) 68.36%,
+			rgba(255, 165, 0, 0.24) 93.01%
+		);
+		filter: blur(5px);
+		pointer-events: none;
+		animation: pulse 2s ease-in-out infinite;
+		transform-origin: center;
+	}
+
+	@keyframes pulse {
+		0% {
+			opacity: 0.75;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.9;
+			transform: scale(1.1);
+		}
+		100% {
+			opacity: 0.75;
+			transform: scale(1);
+		}
+	}
+
+	.glow-start,
+	.glow-end {
+		border-radius: 0;
+	}
+
+	/* === HORIZONTAL === */
+	.glow-start.right,
+	.glow-end.left {
+		border-radius: 50% 0 0 50%;
+	}
+
+	.glow-end.right,
+	.glow-start.left {
+		border-radius: 0 50% 50% 0;
+	}
+
+	.glow-end.bottom,
+	.glow-start.top {
+		border-radius: 50% 50% 0 0;
+	}
+
+	.glow-start.bottom,
+	.glow-end.top {
+		border-radius: 0 0 50% 50%;
 	}
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-	import stars from '../assets/scratcher/stars.svg'
+	import stars from '../assets/scratcher/stars.png'
 	import CardBorderSVG from '../components/CardBorderSVG.vue'
 	import Connections from '../components/Connections.vue'
 	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
@@ -112,7 +112,7 @@
 		<img class="stars" :src="stars" />
 		<img class="stars flipped" :src="stars" />
 		<header>
-			<h1 class="font-kadwa heading">scratch</h1>
+			<h1 class="font-kadwa heading font--64">scratch</h1>
 			<h1 class="font-kadwa font--38 heading">& win</h1>
 		</header>
 		<div id="glowing-wrapper" class="relative">
@@ -135,23 +135,23 @@
 
 <style scoped>
 	.stars {
-		width: 7rem;
+		width: 8.5rem;
 		position: absolute;
-		top: 10px;
-		right: 10px;
+		top: 1rem;
+		right: 1rem;
 		&.flipped {
-			left: 10px;
+			left: 1rem;
 			-webkit-transform: scaleX(-1);
 			transform: scaleX(-1);
 		}
 	}
 	.heading {
 		line-height: 1;
-		-webkit-text-stroke-width: 1px;
+		-webkit-text-stroke-width: 1.5px;
 		-webkit-text-stroke-color: #fff;
 		font-family: Kadwa, serif;
 		width: max-content;
-		font-size: 3.2rem;
+		font-size: 3.1rem;
 		font-style: normal;
 		font-weight: 700;
 		text-transform: uppercase;
@@ -167,7 +167,7 @@
 	}
 
 	.font--64 {
-		font-size: 4.125rem;
+		font-size: 4rem;
 		line-height: 1;
 	}
 
@@ -195,6 +195,9 @@
 		padding-left: 3.25rem;
 		position: relative;
 		z-index: 1;
+		box-shadow:
+			0 4px 8px 0 rgba(0, 0, 0, 0.2),
+			0 6px 20px 0 rgba(0, 0, 0, 0.19);
 	}
 
 	.borderSVG {

@@ -1,12 +1,13 @@
-<script setup>
-	const props = defineProps({ active: Boolean })
+<script setup lang="ts">
+	defineProps<{ active: boolean; class: string }>()
 </script>
 
 <template>
 	<svg
 		v-if="active"
-		width="82"
-		height="82"
+		v-bind="$attrs"
+		width="90"
+		height="90"
 		viewBox="0 0 82 82"
 		fill="none"
 		xmlns="http://www.w3.org/2000/svg"
@@ -148,8 +149,9 @@
 
 	<svg
 		v-else
-		width="82"
-		height="82"
+		v-bind="$attrs"
+		width="90"
+		height="90"
 		viewBox="0 0 82 82"
 		fill="none"
 		xmlns="http://www.w3.org/2000/svg"
