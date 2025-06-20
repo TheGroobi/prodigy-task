@@ -1,10 +1,21 @@
 <script setup lang="ts">
+	import { ref } from 'vue'
 	import Scratcher from './components/Scratcher.vue'
+
+	let open = ref<boolean>(false)
+
+	window.addEventListener('message', (event) => {
+		const { action } = event.data
+
+		if (action === 'openScratcher') {
+			open.value = true
+		}
+	})
 </script>
 
 <template>
 	<main>
-		<Scratcher />
+		<Scratcher v-if="open" />
 	</main>
 </template>
 
