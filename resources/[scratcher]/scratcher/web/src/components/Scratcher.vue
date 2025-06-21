@@ -4,10 +4,10 @@
 	import MegaBigWin from './MegaBigWin.vue'
 	import MegaBigLose from './MegaBigLose.vue'
 	import Connections from '../components/Connections.vue'
-	import axios from 'axios'
 	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
 	import { ref, onMounted, nextTick, watch } from 'vue'
 	import { shoot } from '@/lib/confetti'
+	import { nuiCallback } from '@/lib/nui'
 	import winSound from '../assets/scratcher/win-sound.ogg'
 	import loseSound from '../assets/scratcher/lose-sound.ogg'
 
@@ -76,6 +76,7 @@
 		if (!scratched.value) {
 			console.log('Started scratching')
 			scratched.value = true
+			nuiCallback({ link: 'scratcher:consume', message: 'Consuming scratcher' })
 		}
 	}
 
@@ -91,6 +92,10 @@
 		if (!scratched.value) {
 			console.log('Started scratching')
 			scratched.value = true
+			nuiCallback({
+				link: 'scratcher:consume',
+				message: 'Consuming scratcher',
+			})
 		}
 
 		const canvas = canvasRef.value
@@ -365,51 +370,22 @@
 		},
 	)
 
-	function nuiCallback({
-		link,
-		delay = 1000,
-		data = {},
-		message = '',
-	}: {
-		link?: string
-		data?: Record<string, any>
-		delay?: number
-		message?: string
-	}) {
-		setTimeout(() => {
-			if (message) {
-				console.log(message)
-			}
-
-			if (link) {
-				try {
-					axios.post(link, data)
-				} catch (e) {
-					console.error(e)
-				}
-			}
-		}, delay)
-	}
-
 	watch(hasWon, () => {
-		//@ts-expect-error
-		const url = `https://${GetParentResourceName()}`
-
 		if (hasWon.value === true) {
+			shoot()
+			playSound('win')
 			setTimeout(() => {
-				shoot()
-				playSound('win')
 				nuiCallback({
-					link: `${url}/scratcher:win`,
+					link: 'scratcher:win',
 					data: { winAmount: result.winningTier.winAmount },
 					message: `User has won: $${result.winningTier.winAmount} \nat chance ${result.winningTier.chance}%`,
 				})
 			}, 1000)
 		} else if (hasWon.value === false) {
+			playSound('lose')
 			setTimeout(() => {
-				playSound('lose')
 				nuiCallback({
-					link: `${url}/scratcher:lose`,
+					link: 'scratcher:lose',
 					message: `User did not win anything`,
 				})
 			}, 1000)

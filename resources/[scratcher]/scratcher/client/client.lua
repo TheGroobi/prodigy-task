@@ -1,5 +1,18 @@
 local scratcherOpen = false
 
+RegisterNuiCallback("scratcher:close", function()
+	if scratcherOpen then
+		SetNuiFocus(false, false)
+		print("[CLOSE] Scratcher not dirty, not consuming scratcher")
+
+		SendNUIMessage({
+			action = "closeScratcher",
+		})
+
+		scratcherOpen = false
+	end
+end)
+
 exports("scratcher:open", function()
 	if scratcherOpen == true then
 		return
@@ -50,4 +63,8 @@ RegisterNUICallback("scratcher:lose", function()
 		description = "Remember, you can't win if you don't play",
 		type = "success",
 	})
+end)
+
+RegisterNuiCallback("scratcher:consume", function()
+	TriggerServerEvent("scratcher:consume")
 end)

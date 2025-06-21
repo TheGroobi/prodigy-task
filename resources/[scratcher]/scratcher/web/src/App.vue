@@ -1,12 +1,12 @@
 <script setup lang="ts">
 	import { ref } from 'vue'
+	import { nuiCallback } from '@/lib/nui'
 	import Scratcher from './components/Scratcher.vue'
 
 	let open = ref<boolean>(false)
 
-	window.addEventListener('message', (event) => {
-		const e = event.data
-		const { action } = e
+	window.addEventListener('message', (e) => {
+		const { action } = e.data
 
 		if (action === 'openScratcher') {
 			open.value = true
@@ -14,6 +14,15 @@
 
 		if (action === 'closeScratcher') {
 			open.value = false
+		}
+	})
+
+	window.addEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.key === 'Escape') {
+			nuiCallback({
+				link: 'scratcher:close',
+				message: 'Scratcher not dirty, not consuming scratcher',
+			})
 		}
 	})
 </script>
