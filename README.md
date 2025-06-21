@@ -1,38 +1,67 @@
-# cfx-server-data
-_The data repository for Cfx.re servers_
+# Prodigy trial task - Scratcher
 
-## Deprecation notice
-This repository itself is considered finalized/immutable and is currently archived. Pull requests or issue reports were not merged for a *while*, using the contents of the repository should still be fine (and this shouldn't change until mentioned otherwise).
+A scratch card script for FiveM
 
-In the future, relevant parts of this repository will be moved to [citizenfx/fivem](https://github.com/citizenfx/fivem) to be bundled with actual server builds, and the examples (+ legacy API-like resources) will be moved to a new repository.
+### Features
 
-If there's any critical issue in the code in this repository, posting on the [Cfx.re forums](https://forum.cfx.re/) may work.
+- Scratcher as a one-time use item
 
-## Usage
-1. Make sure to `git clone`. Don't "Download ZIP", as that'll make it _much_ harder to update to newer versions.
-2. Put custom resources in `resources/[local]/` if you don't want to be affected by any random messups.
+- Scratchers integrated with ox_inventory shops
 
-### Advanced usage
-You can also consider using the repository as a submodule + symlink for your own Git repository:
+- Configurable tier chances and prize values
 
-**Linux**:
+- Custom UI Animations, sounds, and icon
+
+- After win, character account balance updated with won amount
+
+- Responsive UI matching provided design file
+
+- Logging:
+
+  - FiveM client user actions
+  - Server Sided actions
+
+### Config
+
+Tiers are configurable via config.ts at `resources/[scratcher]/scratcher/web/config.ts`
+
+!> [!WARNING]
+
+> All 5 tiers need to be present
+
+- `tier: number of connecting coins`
+- `chance: percent to win that tier 5 = 5%`
+- `prize: amount that will be transfered to account after winning`
+
+Default config:
+
+```ts
+export const tiers: Tiers = [
+  { chance: 0, prize: 0 }, // fallback value if nothing else is hit
+  { chance: 5, prize: 500 }, // 5% chance 500$
+  { chance: 0.1, prize: 1000 }, // 0.1% chance 1000$
+  { chance: 0.005, prize: 100000 }, // 0.005% chance 100000$
+  { chance: 0.00001, prize: 1000000 }, // 0.00001% chance 1000000$
+];
 ```
-$ git submodule add https://github.com/citizenfx/cfx-server-data.git vendor/server-data
-$ ln -s ../vendor/server-data/resources/ 'resources/[base]/'
+
+## Stack
+
+#### FiveM:
+
+- ox_inventory
+- ox_core
+- MariaDB
+
+### Front-end:
+
+- Vue
+- TypeScript
+
+##### Copyright
+
+- All sounds used came from ![Pixabay](https://pixabay.com/)
+
 ```
 
-**Windows**:
 ```
-> git submodule add https://github.com/citizenfx/cfx-server-data.git vendor/server-data
-> mklink /d resources\[base] ..\vendor\server-data\resources
-```
-
-## Policy
-You can make pull requests to propose changes that benefit _everyone_. Add new useful resources, change/improve
-existing ones - anything goes, as long as you make sure to:
-
-1. Not break existing users/APIs.
-2. Not change default behavior without a toggle.
-3. Use best practices (convars over config files, native commands wherever possible, etc.)
-
-Modifying or rewriting existing resources in this repository for local use only is _strongly_ discouraged.
