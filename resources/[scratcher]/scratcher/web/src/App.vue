@@ -2,19 +2,31 @@
 	import { ref } from 'vue'
 	import { nuiCallback } from '@/lib/nui'
 	import Scratcher from './components/Scratcher.vue'
+	import { sendDiscordLog } from './lib/log'
 
 	let open = ref<boolean>(false)
+	let userId = ref<string>('')
+	let tested = ref<boolean>(false)
 
 	window.addEventListener('message', (e) => {
-		const { action } = e.data
+		const data = e.data
+		const { action } = data
 
 		if (action === 'openScratcher') {
-			console.log('Opened a scratcher')
 			open.value = true
 		}
 
 		if (action === 'closeScratcher') {
 			open.value = false
+		}
+
+		if (action === 'userId') {
+			userId = data.userId
+			console.log(userId)
+		}
+
+		if (action === 'discordLog') {
+			sendDiscordLog({ ...data.logData })
 		}
 	})
 
@@ -31,7 +43,7 @@
 <template>
 	<main>
 		<Transition>
-			<Scratcher v-if="open" />
+			<Scratcher :tested="tested" v-if="open" :userId="userId" />
 		</Transition>
 	</main>
 </template>

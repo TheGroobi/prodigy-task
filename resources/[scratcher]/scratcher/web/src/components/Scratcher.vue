@@ -13,8 +13,9 @@
 	import loseSound from '../assets/scratcher/lose-sound.ogg'
 	import { tiers } from '../../config'
 	import type { Tier } from '@/lib/types'
+	import { formatMatrix, sendDiscordLog, sendTestingLog } from '@/lib/log'
 
-	window.parent.postMessage({ action: 'close' }, '*')
+	const { userId, tested } = defineProps<{ userId: string; tested: boolean }>()
 
 	const svgRef = ref<SVGSVGElement | null>(null)
 	const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -30,6 +31,26 @@
 	let soundSrc = ref<string>('')
 
 	onMounted(async () => {
+		if (!tested) {
+			const winners = new Array(tiers.length).fill(0)
+			for (let i = 0; i < 1_000_000; i++) {
+				winners[rollWinner(tiers)]++
+			}
+
+			const resultTable = winners
+				.map(
+					(count, index) =>
+						`Tier ${index + 1} (${tiers[index].chance}%): ${count.toLocaleString()} wins`,
+				)
+				.join('\n')
+
+			await sendTestingLog({
+				title: '**1 Million Simulated Rolls**',
+				description: resultTable,
+				at: 'Scratcher.vue - Odds test line:190',
+			})
+		}
+
 		await nextTick()
 
 		resizeCanvas()
@@ -64,7 +85,7 @@
 
 		setTimeout(() => {
 			mounted.value = true
-		}, 800)
+		}, 500)
 	})
 
 	function resizeCanvas() {
@@ -82,7 +103,21 @@
 		playSound('scratch')
 
 		if (!scratched.value) {
-			console.log('Started scratching')
+			sendDiscordLog({
+				ownerId: Number(userId),
+				method: 'info',
+				message:
+					`This scratcher is tier ${tiers.indexOf(result.winningTier) + 1} and has ${result.connections} connecting coins this scratcher \n` +
+					formatMatrix(result.grid),
+				at: 'Scratcher.vue - startScratch()',
+			}).then()
+
+			sendDiscordLog({
+				ownerId: Number(userId),
+				method: 'action',
+				message: 'User started scratching the scratcher',
+				at: 'Scratcher.vue - startScratch()',
+			}).then()
 			scratched.value = true
 			nuiCallback({ link: 'scratcher:consume', message: 'Consuming scratcher' })
 		}
@@ -101,15 +136,6 @@
 	function scratch(e: MouseEvent | TouchEvent) {
 		e.preventDefault()
 		if (!isScratching.value) return
-
-		if (!scratched.value) {
-			console.log('Started scratching')
-			scratched.value = true
-			nuiCallback({
-				link: 'scratcher:consume',
-				message: 'Consuming scratcher',
-			})
-		}
 
 		const canvas = canvasRef.value
 		if (!canvas) return
@@ -168,16 +194,6 @@
 
 		return 0 // fallback to tier 0 - nothing won
 	}
-
-	/* This is for testing odds of different tiers
-     *
-	const winners = new Array(tiers.length).fill(0)
-	for (let i = 0; i < 1_000_000; i++) {
-		winners[rollWinner(tiers)]++
-	}
-	console.log('1 mil random rolls :', winners)
-
-    */
 
 	function getPlacement(connections: number): 'column' | 'row' | 'crawler' {
 		if (connections === 5) return 'column'
@@ -336,7 +352,6 @@
 	const ROWS = 5
 	const COLS = 4
 	const result = generateGrid(tiers, ROWS, COLS)
-	console.log('Connections this scratcher: ', result.connections)
 
 	function playSound(sound: 'win' | 'lose' | 'scratch') {
 		switch (sound) {

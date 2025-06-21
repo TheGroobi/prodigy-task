@@ -1,8 +1,8 @@
 import axios from 'axios'
+import { sendDiscordLog } from './log'
 export function nuiCallback({
 	link,
 	data = {},
-	message = '',
 }: {
 	link: string
 	data?: Record<string, any>
@@ -11,13 +11,15 @@ export function nuiCallback({
 	//@ts-expect-error
 	const url = `https://${GetParentResourceName()}/`
 
-	if (message) {
-		console.log(message)
-	}
-
 	try {
 		axios.post(url + link, data)
 	} catch (e) {
-		console.error(e)
+		sendDiscordLog({
+			method: 'error',
+			ownerId: -1,
+			title: 'Axios error',
+			message: String(e),
+			at: 'nui.ts',
+		})
 	}
 }
