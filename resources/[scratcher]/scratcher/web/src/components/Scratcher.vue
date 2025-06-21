@@ -4,20 +4,26 @@
 	import MegaBigWin from './MegaBigWin.vue'
 	import MegaBigLose from './MegaBigLose.vue'
 	import Connections from '../components/Connections.vue'
+	import axios from 'axios'
 	import ScratchSufrace from '../assets/scratcher/scratch-surface.png'
 	import { ref, onMounted, nextTick, watch } from 'vue'
 	import { shoot } from '@/lib/confetti'
+	import winSound from '../assets/scratcher/win-sound.ogg'
+	import loseSound from '../assets/scratcher/lose-sound.ogg'
 
 	window.parent.postMessage({ action: 'close' }, '*')
 
 	const svgRef = ref<SVGSVGElement | null>(null)
 	const canvasRef = ref<HTMLCanvasElement | null>(null)
+	const audioRef = ref<HTMLAudioElement | null>(null)
+
+	const BRUSH_SIZE = 35 // <- this changes the radius of the brush
 
 	const isScratching = ref<boolean>(false)
 	let hasWon = ref<boolean | null>(null)
 	let scratched = ref<boolean>(false)
 	let mounted = ref<boolean>(false)
-	const BRUSH_SIZE = 35 // <- this changes the radius of the brush
+	let soundSrc = ref<string>('')
 
 	onMounted(async () => {
 		await nextTick()
@@ -137,7 +143,7 @@
 
 	const tiers: [Tier, Tier, Tier, Tier, Tier] = [
 		{ winAmount: 0, chance: 0 }, // base tier for fallback - not connecting anything
-		{ winAmount: 500, chance: 5 },
+		{ winAmount: 500, chance: 30 },
 		{ winAmount: 10000, chance: 0.1 },
 		{ winAmount: 50000, chance: 0.05 },
 		{ winAmount: 90000, chance: 0.0001 },
@@ -158,11 +164,15 @@
 		return 0 // fallback to tier 0 - nothing won
 	}
 
+	/* This is for testing odds of different tiers
+     *
 	const winners = new Array(tiers.length).fill(0)
 	for (let i = 0; i < 1_000_000; i++) {
 		winners[rollWinner(tiers)]++
 	}
 	console.log('1 mil random rolls :', winners)
+
+    */
 
 	function getPlacement(connections: number): 'column' | 'row' | 'crawler' {
 		if (connections === 5) return 'column'
@@ -321,38 +331,89 @@
 	const ROWS = 5
 	const COLS = 4
 	const result = generateGrid(tiers, ROWS, COLS)
+	console.log('Connections this scratcher: ', result.connections)
 
-	console.log(result.grid)
-	console.log(result.connections)
-	console.log(result.winningTier)
+	function playSound(sound: 'win' | 'lose' | 'scratch') {
+		switch (sound) {
+			case 'win':
+				soundSrc.value = winSound
+				break
+			case 'scratch':
+				soundSrc.value = winSound // TODO
+				break
+			case 'lose':
+				soundSrc.value = loseSound
+				break
+		}
 
+		nextTick(() => {
+			audioRef.value?.play()
+		})
+	}
 	watch(
 		() => seenCoins.value.size,
 		() => {
-			if (hasWon.value !== null || !scratched) return
+			if (hasWon.value !== null || !scratched || seenCoins.value.size !== ROWS * COLS) return
 
 			const winningRevealed = winning.value.every((cell) => seenCoins.value.has(cell))
 
 			if (winningRevealed && result.connections !== 1) {
-				setTimeout(() => {
-					shoot()
-					console.log(`User has won : $${result.winningTier.winAmount} at chance
-${result.winningTier.chance}`)
-					hasWon.value = true
-				}, 2000)
-			}
-
-			if (seenCoins.value.size === ROWS * COLS) {
-				setTimeout(() => {
-					console.log(`User has not won anything`)
-					hasWon.value = false
-				}, 500)
+				hasWon.value = true
+			} else {
+				hasWon.value = false
 			}
 		},
 	)
 
-	watch(mounted, () => {
-		console.log(mounted.value)
+	function nuiCallback({
+		link,
+		delay = 1000,
+		data = {},
+		message = '',
+	}: {
+		link?: string
+		data?: Record<string, any>
+		delay?: number
+		message?: string
+	}) {
+		setTimeout(() => {
+			if (message) {
+				console.log(message)
+			}
+
+			if (link) {
+				try {
+					axios.post(link, data)
+				} catch (e) {
+					console.error(e)
+				}
+			}
+		}, delay)
+	}
+
+	watch(hasWon, () => {
+		//@ts-expect-error
+		const url = `https://${GetParentResourceName()}`
+
+		if (hasWon.value === true) {
+			setTimeout(() => {
+				shoot()
+				playSound('win')
+				nuiCallback({
+					link: `${url}/scratcher:win`,
+					data: { winAmount: result.winningTier.winAmount },
+					message: `User has won: $${result.winningTier.winAmount} \nat chance ${result.winningTier.chance}%`,
+				})
+			}, 1000)
+		} else if (hasWon.value === false) {
+			setTimeout(() => {
+				playSound('lose')
+				nuiCallback({
+					link: `${url}/scratcher:lose`,
+					message: `User did not win anything`,
+				})
+			}, 1000)
+		}
 	})
 </script>
 
@@ -390,6 +451,7 @@ ${result.winningTier.chance}`)
 			<div class="canvas-background"></div>
 		</div>
 		<h2 class="font-kadwa heading">win up to ${{ tiers[4].winAmount }}</h2>
+		<audio v-if="soundSrc" :src="soundSrc" ref="audioRef" hidden></audio>
 	</div>
 </template>
 

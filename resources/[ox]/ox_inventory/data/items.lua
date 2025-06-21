@@ -232,6 +232,11 @@ return {
         description = "99% of gamblers quit before hitting a Mega Big win...",
         stack = true,
         close = true,
-        client = { export = "scratcher.scratcher" },
+        consume = 1,
+        client = {
+            export = "scratcher.scratcher:open",
+            anim = { dict = "mp_player_intdrink", clip = "loop" },
+            usetime = 1000,
+        },
     },
 }

@@ -1,3 +1,4 @@
+//@ts-ignore
 const defaults = {
 	spread: 400,
 	ticks: 100,

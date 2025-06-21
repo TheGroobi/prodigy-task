@@ -2,6 +2,10 @@
 fx_version("cerulean")
 game({ "gta5" })
 
+lua54("yes")
+
+shared_script("@ox_core/lib/init.lua")
+
 author("TheGrooby <23wilk.szymon@gmail.com>")
 description("Scratcher script")
 version("1.0.0")
@@ -9,6 +13,10 @@ version("1.0.0")
 -- What to run
 client_scripts({
 	"client/client.lua",
+})
+
+server_scripts({
+	"server/server.lua",
 })
 
 ui_page("web/dist/index.html")
@@ -19,6 +27,7 @@ files({
 	"web/dist/assets/*.css",
 	"web/dist/assets/*.png",
 	"web/dist/assets/*.jpg",
+	"web/dist/assets/*.ogg",
 })
 
 -- Extra data can be used as well

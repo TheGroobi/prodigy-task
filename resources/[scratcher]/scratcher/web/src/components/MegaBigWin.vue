@@ -120,12 +120,12 @@
 		-webkit-text-stroke: 1px;
 		-webkit-text-stroke-color: white;
 
-		-webkit-background-clip: text;
-		background: linear-gradient(227deg, #f00 18.79%, #900 80.86%);
-		background-clip: text;
 		color: transparent;
 		font-family: Kadwa, serif;
 		min-width: max-content;
+		background: linear-gradient(227deg, #f00 18.79%, #900 80.86%);
+		-webkit-background-clip: text;
+		background-clip: text;
 	}
 
 	h2 {

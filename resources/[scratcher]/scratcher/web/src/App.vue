@@ -5,10 +5,15 @@
 	let open = ref<boolean>(false)
 
 	window.addEventListener('message', (event) => {
-		const { action } = event.data
+		const e = event.data
+		const { action } = e
 
 		if (action === 'openScratcher') {
 			open.value = true
+		}
+
+		if (action === 'closeScratcher') {
+			open.value = false
 		}
 	})
 </script>
