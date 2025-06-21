@@ -9,6 +9,7 @@
 	import { shoot } from '@/lib/confetti'
 	import { nuiCallback } from '@/lib/nui'
 	import winSound from '../assets/scratcher/win-sound.ogg'
+	import scratchingSound from '../assets/scratcher/scratching-sound.ogg'
 	import loseSound from '../assets/scratcher/lose-sound.ogg'
 	import { tiers } from '../../config'
 	import type { Tier } from '@/lib/types'
@@ -17,11 +18,12 @@
 
 	const svgRef = ref<SVGSVGElement | null>(null)
 	const canvasRef = ref<HTMLCanvasElement | null>(null)
+	const audioLoop = ref<boolean>(false)
 	const audioRef = ref<HTMLAudioElement | null>(null)
 
 	const BRUSH_SIZE = 35 // <- this changes the radius of the brush
 
-	const isScratching = ref<boolean>(false)
+	let isScratching = ref<boolean>(false)
 	let hasWon = ref<boolean | null>(null)
 	let scratched = ref<boolean>(false)
 	let mounted = ref<boolean>(false)
@@ -53,15 +55,16 @@
 		const ctx = canvas?.getContext('2d')
 		if (!ctx || !canvas) return
 
+		await nextTick()
 		const img = new Image()
 		img.src = ScratchSufrace
 		img.onload = () => {
 			ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 		}
-		await nextTick()
+
 		setTimeout(() => {
 			mounted.value = true
-		}, 150)
+		}, 800)
 	})
 
 	function resizeCanvas() {
@@ -75,6 +78,8 @@
 
 	function startScratch() {
 		isScratching.value = true
+		audioLoop.value = true
+		playSound('scratch')
 
 		if (!scratched.value) {
 			console.log('Started scratching')
@@ -85,6 +90,11 @@
 
 	function endScratch() {
 		isScratching.value = false
+		audioLoop.value = false
+
+		if (audioRef.value && soundSrc.value === scratchingSound) {
+			audioRef.value.pause()
+		}
 	}
 
 	const seenCoins = ref<Set<string>>(new Set())
@@ -333,11 +343,9 @@
 			case 'win':
 				soundSrc.value = winSound
 				break
-			/* TODO
 			case 'scratch':
-				soundSrc.value = winSound
+				soundSrc.value = scratchingSound
 				break
-            */
 			case 'lose':
 				soundSrc.value = loseSound
 				break
@@ -347,6 +355,7 @@
 			audioRef.value?.play()
 		})
 	}
+
 	watch(
 		() => seenCoins.value.size,
 		() => {
@@ -369,6 +378,8 @@
 	watch(hasWon, () => {
 		if (hasWon.value === true) {
 			shoot()
+			audioLoop.value = false
+
 			playSound('win')
 			setTimeout(() => {
 				nuiCallback({
@@ -378,6 +389,7 @@
 				})
 			}, 1000)
 		} else if (hasWon.value === false) {
+			audioLoop.value = false
 			playSound('lose')
 			setTimeout(() => {
 				nuiCallback({
@@ -422,7 +434,13 @@
 			<div class="canvas-background"></div>
 		</div>
 		<h2 class="font-kadwa heading">win up to ${{ tiers[4].prize }}</h2>
-		<audio v-if="soundSrc" :src="soundSrc" ref="audioRef" hidden></audio>
+		<audio
+			v-bind:loop="audioLoop"
+			v-if="soundSrc"
+			:src="soundSrc"
+			ref="audioRef"
+			hidden
+		></audio>
 	</div>
 </template>
 

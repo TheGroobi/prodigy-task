@@ -230,7 +230,7 @@ return {
     ["scratcher"] = {
         label = "Scratcher",
         description = "99% of gamblers quit before hitting a Mega Big win...",
-        stack = true,
+        stack = false,
         close = true,
         weidht = 1,
         consume = 1,

@@ -1,5 +1,4 @@
 local scratcherOpen = false
-
 RegisterNuiCallback("scratcher:close", function()
 	if scratcherOpen then
 		SetNuiFocus(false, false)

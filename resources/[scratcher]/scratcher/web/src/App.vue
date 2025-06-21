@@ -9,6 +9,7 @@
 		const { action } = e.data
 
 		if (action === 'openScratcher') {
+			console.log('Opened a scratcher')
 			open.value = true
 		}
 
@@ -29,7 +30,9 @@
 
 <template>
 	<main>
-		<Scratcher v-if="open" />
+		<Transition>
+			<Scratcher v-if="open" />
+		</Transition>
 	</main>
 </template>
 
@@ -62,5 +65,15 @@
 
 	img {
 		max-width: 100%;
+	}
+
+	.v-enter-active,
+	.v-leave-active {
+		transition: opacity 0.5s ease;
+	}
+
+	.v-enter-from,
+	.v-leave-to {
+		opacity: 0;
 	}
 </style>
