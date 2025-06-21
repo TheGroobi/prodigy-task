@@ -74,7 +74,7 @@
 	.coin-wrapper {
 		position: relative;
 		padding: 0.25rem;
-		max-width: 80px;
+		max-width: 90px;
 	}
 
 	:deep(.glow::before) {

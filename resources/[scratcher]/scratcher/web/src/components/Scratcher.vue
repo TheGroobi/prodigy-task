@@ -363,9 +363,13 @@
 			const winningRevealed = winning.value.every((cell) => seenCoins.value.has(cell))
 
 			if (winningRevealed && result.connections !== 1) {
-				hasWon.value = true
+				setTimeout(() => {
+					hasWon.value = true
+				}, 2000)
 			} else {
-				hasWon.value = false
+				setTimeout(() => {
+					hasWon.value = false
+				}, 2000)
 			}
 		},
 	)
