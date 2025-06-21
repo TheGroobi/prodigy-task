@@ -30,7 +30,7 @@ end)
 RegisterNUICallback("scratcher:win", function(data)
 	SetNuiFocus(false, false)
 
-	TriggerServerEvent("scratcher:transfer-win", data.winAmount)
+	TriggerServerEvent("scratcher:transfer-win", data.prize)
 
 	SetTimeout(5000, function()
 		SendNUIMessage({
@@ -41,7 +41,7 @@ RegisterNUICallback("scratcher:win", function(data)
 	end)
 
 	lib.notify({
-		title = ("You won $%s from the scratcher!"):format(data.winAmount),
+		title = ("You won $%s from the scratcher!"):format(data.prize),
 		description = "The money has been transferred to your personal account",
 		type = "success",
 	})

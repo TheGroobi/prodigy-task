@@ -10,6 +10,8 @@
 	import { nuiCallback } from '@/lib/nui'
 	import winSound from '../assets/scratcher/win-sound.ogg'
 	import loseSound from '../assets/scratcher/lose-sound.ogg'
+	import { tiers } from '../../config'
+	import type { Tier } from '@/lib/types'
 
 	window.parent.postMessage({ action: 'close' }, '*')
 
@@ -32,6 +34,7 @@
 
 		window.addEventListener('resize', resizeCanvas)
 
+		//@ts-expect-error
 		const svgRoot = svgRef.value?.$el as SVGSVGElement | null
 		if (!svgRoot) return
 
@@ -140,19 +143,6 @@
 			}
 		})
 	}
-
-	interface Tier {
-		winAmount: number
-		chance: number
-	}
-
-	const tiers: [Tier, Tier, Tier, Tier, Tier] = [
-		{ winAmount: 0, chance: 0 }, // base tier for fallback - not connecting anything
-		{ winAmount: 500, chance: 30 },
-		{ winAmount: 10000, chance: 0.1 },
-		{ winAmount: 50000, chance: 0.05 },
-		{ winAmount: 90000, chance: 0.0001 },
-	]
 
 	function rollWinner(t: typeof tiers): number {
 		const total = t.reduce((sum, tier) => sum + tier.chance, 0)
@@ -343,9 +333,11 @@
 			case 'win':
 				soundSrc.value = winSound
 				break
+			/* TODO
 			case 'scratch':
-				soundSrc.value = winSound // TODO
+				soundSrc.value = winSound
 				break
+            */
 			case 'lose':
 				soundSrc.value = loseSound
 				break
@@ -381,8 +373,8 @@
 			setTimeout(() => {
 				nuiCallback({
 					link: 'scratcher:win',
-					data: { winAmount: result.winningTier.winAmount },
-					message: `User has won: $${result.winningTier.winAmount} \nat chance ${result.winningTier.chance}%`,
+					data: { prize: result.winningTier.prize },
+					message: `User has won: $${result.winningTier.prize} \nat chance ${result.winningTier.chance}%`,
 				})
 			}, 1000)
 		} else if (hasWon.value === false) {
@@ -399,7 +391,7 @@
 
 <template>
 	<div id="wrapper" class="background">
-		<MegaBigWin :prize="result.winningTier.winAmount" v-if="hasWon === true" />
+		<MegaBigWin :prize="result.winningTier.prize" v-if="hasWon === true" />
 		<MegaBigLose v-else-if="hasWon === false" />
 
 		<img class="stars" :src="stars" />
@@ -422,7 +414,6 @@
 			<Connections
 				v-if="mounted === true"
 				:grid="result.grid"
-				:seen="seenCoins"
 				:startCell="startCell"
 				:endCell="endCell"
 				:direction="direction"
@@ -430,7 +421,7 @@
 			/>
 			<div class="canvas-background"></div>
 		</div>
-		<h2 class="font-kadwa heading">win up to ${{ tiers[4].winAmount }}</h2>
+		<h2 class="font-kadwa heading">win up to ${{ tiers[4].prize }}</h2>
 		<audio v-if="soundSrc" :src="soundSrc" ref="audioRef" hidden></audio>
 	</div>
 </template>

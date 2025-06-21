@@ -3,14 +3,13 @@
 
 	interface Props {
 		grid: (0 | 1 | 2)[][]
-		seen: Set<string> // or boolean[][] if you prefer
 		connections: number
 		startCell?: [number, number]
 		endCell?: [number, number]
 		direction?: 'top' | 'bottom' | 'left' | 'right'
 	}
 
-	const { grid, seen, connections, startCell, endCell, direction } = defineProps<Props>()
+	const { grid, connections, startCell, endCell, direction } = defineProps<Props>()
 
 	function isStart(r: number, c: number) {
 		return startCell ? r === startCell[0] && c === startCell[1] : false

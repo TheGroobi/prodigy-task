@@ -1,4 +1,4 @@
-RegisterNetEvent("scratcher:win", function(winAmount)
+RegisterNetEvent("scratcher:win", function(prize)
 	local logEvent = " - (scratcher:win)"
 	local player = Ox.GetPlayer(source)
 
@@ -13,13 +13,13 @@ RegisterNetEvent("scratcher:win", function(winAmount)
 		return
 	end
 
-	account.addBalance({ amount = winAmount, message = "Scratcher win" })
+	account.addBalance({ amount = prize, message = "Scratcher win" })
 
-	print(("[SUCCESS] Player %s has won %s"):format(player.username, winAmount) .. logEvent)
+	print(("[SUCCESS] Player %s has won %s"):format(player.username, prize) .. logEvent)
 	print(
 		("[SUCCESS] It has been transferred to account %s \n from balance %s to %s"):format(
 			account.id,
-			account.balance - winAmount,
+			account.balance - prize,
 			account.balance .. logEvent
 		)
 	)
