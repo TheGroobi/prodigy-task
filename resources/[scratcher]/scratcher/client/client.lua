@@ -3,7 +3,7 @@ local scratcherOpen = false
 RegisterNuiCallback("scratcher:close", function()
 	if scratcherOpen then
 		SetNuiFocus(false, false)
-		print("[CLOSE] Scratcher not dirty, not consuming scratcher")
+		print("[INFO] Scratcher not dirty, not consuming scratcher")
 
 		SendNUIMessage({
 			action = "closeScratcher",
