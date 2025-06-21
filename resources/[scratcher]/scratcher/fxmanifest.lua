@@ -28,7 +28,11 @@ files({
 	"web/dist/assets/*.png",
 	"web/dist/assets/*.jpg",
 	"web/dist/assets/*.ogg",
+	"stream/scratch-card.ydr",
+	"stream/scratch-card.ytd",
 })
+
+data_file("DLC_ITYP_REQUEST")("stream/scratch_card.ydr")
 
 -- Extra data can be used as well
 -- my_data 'one' { two = 42 }
